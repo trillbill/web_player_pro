@@ -1,0 +1,169 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #1a1a1a;
+}
+
+.header {
+  width: 100%;
+  padding: 20px;
+  text-align: center;
+  background: #2a2a2a;
+  border-bottom: 1px solid #444;
+}
+
+h1 {
+  color: #fff;
+  margin: 0;
+  font-size: 2rem;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  gap: 20px;
+  padding: 20px;
+}
+
+.video-column {
+  flex: 2;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.controls-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 300px;
+}
+
+.video-url-container {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  padding-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.video-metadata-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 10px;
+}
+
+.video-url-container button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metrics-section {
+  background: #2a2a2a;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.metrics-section h1 {
+  color: #fff;
+  margin: 0 0 10px 0;
+  font-size: 1.2rem;
+}
+
+.metrics-section h2 {
+  color: #ccc;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.metrics-section p {
+  color: #ccc;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.check-icon {
+  color: #15a440;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  transition: color 0.2s ease;
+}
+
+.copy-icon {
+  color: #fff;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  transition: color 0.2s ease;
+}
+
+.copy-icon:hover {
+  color: #777;
+}
+
+.video-type-text {
+  font-weight: bold;
+  font-size: medium;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.video-type-button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #2a2a2a;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.video-type-button {
+  height: 45px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: #3a3a3a;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.video-type-button-active {
+  height: 45px;
+  width: 100%;
+  border-radius: 6px;
+  background: #15a440;
+  border: 1px solid #15a440;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.video-type-button:hover {
+  background: #555;
+  color: #fff;
+  cursor: pointer;
+  border-color: #777;
+}
