@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import VideoPlayer from './components/VideoPlayer';
 import { FaCopy, FaCheck } from "react-icons/fa";
 import './App.css';
@@ -13,13 +13,25 @@ interface VideoMetadata {
   codec: string | null;
 }
 
+const STREAM_DATA_LABELS = {
+  duration: 'seconds',
+  bitrate: 'kbps',
+  width: 'px',
+  height: 'px',
+  codec: '',
+  scanType: '',
+  frameRate: 'fps',
+};
+
 function App() {
   const HLS = import.meta.env.VITE_STREAM_URL;
-  const MP4 = import.meta.env.VITE_MP4_URL;
   const DASH = import.meta.env.VITE_DASH_URL;
 
-  const [videoUrl, setVideoUrl] = useState(HLS);
+  const [userUrl, setUserUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState(DASH);
   const [isCopied, setIsCopied] = useState(false);
+  const [variants, setVariants] = useState<any[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<number>(-1);
   const [videoMetadata, setVideoMetadata] = useState<VideoMetadata>({
     duration: null,
     bitrate: null,
@@ -29,13 +41,14 @@ function App() {
     frameRate: null,
     codec: null,
   });
+  const timeoutRef = useRef<any>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(videoUrl);
     setIsCopied(true);
     setTimeout(() => {
       setIsCopied(false);
-    }, 5000);
+    }, 3000);
   };
 
   const handleVideoSelect = (url: string) => {
@@ -55,24 +68,61 @@ function App() {
     setVideoMetadata(metadata);
   };
 
+  const handleVariantsLoaded = (variants: any[]) => {
+    setVariants(variants);
+  };
+
+  const handleUserInput = (url: string) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setUserUrl(url);
+    timeoutRef.current = setTimeout(() => {
+      setVideoUrl(url);
+      clearTimeout(timeoutRef.current);
+    }, 1000);
+  };
+
   return (
     <>
       <div className="container">
         <header className="header">
-          <h1>Web Player MVP</h1>
+          <h1>Adaptive Bitrate Video Player</h1>
         </header>
+        <div className="input-container">
+          <input
+            className="user-input"
+            type="text"
+            value={userUrl}
+            onChange={(e) => handleUserInput(e.target.value)}
+            placeholder="Enter your HLS or DASH URL"
+          />
+        </div>
         <div className="main-content">
           <div className="video-column">
             <VideoPlayer
               src={videoUrl}
+              selectedVariant={selectedVariant}
               onMetadataLoaded={handleVideoMetadata}
+              onVariantsLoaded={handleVariantsLoaded}
             />
+            <div className="variant-selector">
+              {
+                variants.map((variant, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setSelectedVariant(i)}
+                    className={selectedVariant === i ? 'variant-button-active' : 'variant-button'}
+                  >
+                    {variant.name || variant.height ? `${variant.name || variant.height}p` : `Variant ${i}`}
+                  </button>
+                ))
+              }
+              <button className={selectedVariant === -1 ? 'variant-button-active' : 'variant-button'} onClick={() => setSelectedVariant(-1)}>Auto</button>
+            </div>
           </div>
           <div className="controls-column">
             <div className="video-type-button-group">
               {[
                 {type: 'hls', url: HLS},
-                {type: 'mp4', url: MP4},
                 {type: 'dash', url: DASH}
               ].map((item, i) => (
                 <button
@@ -93,7 +143,7 @@ function App() {
               {/* Placeholder for future video metrics and features */}
               <h1>Video Metrics</h1>
               <div className="video-url-container">
-                <h2>Video URL:</h2><p>{videoUrl.substring(0, 15)}...</p>
+                <h2>VIDEO URL:</h2><p>{videoUrl.substring(0, 15)}...</p>
                 <button onClick={handleCopy}>
                   {
                   isCopied ? 
@@ -107,7 +157,7 @@ function App() {
                 {
                   Object.entries(videoMetadata).map(([key, value]) => (
                     <div key={key}>
-                      <h2>{key}:</h2><p>{value ? value : 'N/A'}</p>
+                      <h2>{key.toUpperCase()}:</h2><p>{value ? value : 'N/A'} {value && STREAM_DATA_LABELS[key as keyof typeof STREAM_DATA_LABELS]}</p>
                     </div>
                   ))
                 }
