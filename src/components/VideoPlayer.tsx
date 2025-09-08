@@ -121,11 +121,11 @@ export default function VideoPlayer(
       });
       dashPlayer.attachView(video);
 
-      dashPlayer.on('streamActivated', (e: any) => {
+      dashPlayer.on('streamActivated', () => {
         dashPlayer.setRepresentationForTypeByIndex('video', selectedVariant >= 0 ? selectedVariant : 0);
       });
 
-      dashPlayer.on('streamInitialized', (e: void) => {
+      dashPlayer.on('streamInitialized', () => {
         const videoRepresentation = dashPlayer.getCurrentRepresentationForType('video');
         const availableQualities = dashPlayer.getRepresentationsByType('video');
         if (availableQualities?.length > 0) {
@@ -146,7 +146,7 @@ export default function VideoPlayer(
         }
       });
 
-      dashPlayer.on('qualityChangeRendered', (e: void) => {
+      dashPlayer.on('qualityChangeRendered', () => {
         const videoRepresentation = dashPlayer.getCurrentRepresentationForType('video');
         const parsedDashData = parseVideoMetadata(videoRepresentation, 'dash');
         if (parsedDashData) {
@@ -154,7 +154,7 @@ export default function VideoPlayer(
         }
       });
 
-      dashPlayer.on('bufferLoaded', (e: void) => {
+      dashPlayer.on('bufferLoaded', () => {
         const videoRepresentation = dashPlayer.getCurrentRepresentationForType('video');
         const parsedDashData = parseVideoMetadata(videoRepresentation, 'dash');
         if (parsedDashData) {
@@ -190,7 +190,7 @@ export default function VideoPlayer(
 
       const levelData: any[] = [];
 
-      hls.on(HLs.Events.LEVEL_LOADED, (event: any, data: any) => {
+      hls.on(HLs.Events.LEVEL_LOADED, (data: any) => {
         levelData.push({
           level: data.level,
           duration: data.details?.totalduration,
@@ -203,7 +203,7 @@ export default function VideoPlayer(
         });
       });
 
-      hls.on(HLs.Events.MANIFEST_LOADED, (event: any, data: any) => {
+      hls.on(HLs.Events.MANIFEST_LOADED, (data: any) => {
         if (data?.levels?.length > 0) {
           const levelsSorted = data.levels
             .sort((level: any, level2: any) => level.height - level2.height);
@@ -211,18 +211,18 @@ export default function VideoPlayer(
         }
       });
 
-      hls.on(HLs.Events.LEVEL_UPDATED, (event: any, data: any) => {
+      hls.on(HLs.Events.LEVEL_UPDATED, (data: any) => {
         newLevel = data.level;
       });
 
-      hls.on(HLs.Events.FRAG_CHANGED, (event: any, data: any) => {
+      hls.on(HLs.Events.FRAG_CHANGED, (data: any) => {
         const fragLevel = data?.frag?.level;
         if (fragLevel === newLevel) {
           needMetadataRef.current = true;
         }
       });
       
-      hls.on(HLs.Events.FRAG_PARSED, async (event: any, data: any) => {
+      hls.on(HLs.Events.FRAG_PARSED, async (data: any) => {
         if (needMetadataRef.current && data?.frag?._url) {
           needMetadataRef.current = false;
           const manifestData = levelData.find((level: any) => level.level === data.frag.level);
