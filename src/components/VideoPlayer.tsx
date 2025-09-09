@@ -333,6 +333,7 @@ export default function VideoPlayer(
       controls
       onKeyDown={onKeyDown}
       playsInline
+      autoPlay={autoPlay}
       className="player"
       aria-label="Video player"
     >
