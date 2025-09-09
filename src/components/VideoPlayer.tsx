@@ -6,10 +6,14 @@ import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile } from '@ffmpeg/util';
 
 export default function VideoPlayer(
-  { src, selectedVariant, onMetadataLoaded, onVariantsLoaded }:
+  { src, selectedVariant, autoPlay, onEvent, clearEvents, onManifestLoaded, onMetadataLoaded, onVariantsLoaded }:
   { 
     src: string, 
     selectedVariant: number,
+    autoPlay: boolean,
+    onEvent: (event: string) => void,
+    clearEvents: () => void,
+    onManifestLoaded: (manifest: string) => void,
     onMetadataLoaded: (metadata: any) => void,
     onVariantsLoaded: (variants: any) => void
   }
@@ -66,7 +70,6 @@ export default function VideoPlayer(
         data.codec = videoMatch[1].trim();
         data.frameRate = parseFloat(videoMatch[5]);
         
-        // Check for scan type
         if (message.includes('progressive')) {
           data.scanType = 'progressive';
         } else if (message.includes('interlaced')) {
@@ -79,6 +82,7 @@ export default function VideoPlayer(
         const parsedHLSData = parseVideoMetadata(data, 'hls');
         if (parsedHLSData) {
           onMetadataLoaded(parsedHLSData);
+          handleEvent('metadataUpdated', { metadata: parsedHLSData });
         }
       }
     });
@@ -92,10 +96,27 @@ export default function VideoPlayer(
     }
   };
 
+  const handleEvent = (event: string, data: any) => {
+    const message = data ? `${event}: ${JSON.stringify(data)}\n\n` : `${event}\n\n`;
+    onEvent(message);
+  };
+
+  useEffect(() => {
+    if (src.endsWith(".mpd")) {
+      fetch(src)
+        .then(response => response.text())
+        .then(data => {
+          onManifestLoaded(data);
+        })
+        .catch(err => console.error('Error fetching mpd:', err));
+    }
+  }, [src]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
     onVariantsLoaded([]);
+    clearEvents();
 
     if (!needMetadataRef.current) {
       needMetadataRef.current = true;
@@ -107,7 +128,8 @@ export default function VideoPlayer(
       console.log('DASH PLAYLIST DETECTED');
       const dashPlayer = dashjs.MediaPlayer().create();
 
-      dashPlayer.initialize(video, src, true);
+      dashPlayer.initialize(video, src, autoPlay, 0);
+      handleEvent('dashPlayerInitialized', { src: src, autoplay: autoPlay });
       const abrSettings = {
         autoSwitchBitrate: {
           audio: selectedVariant >= 0 ? false : true,
@@ -121,8 +143,13 @@ export default function VideoPlayer(
       });
       dashPlayer.attachView(video);
 
+      dashPlayer.on('manifestLoaded', () => {
+        handleEvent('manifestLoaded', null);
+      });
+
       dashPlayer.on('streamActivated', () => {
         dashPlayer.setRepresentationForTypeByIndex('video', selectedVariant >= 0 ? selectedVariant : 0);
+        handleEvent('streamActivated', { variant: selectedVariant >= 0 ? selectedVariant : 0 });
       });
 
       dashPlayer.on('streamInitialized', () => {
@@ -138,11 +165,13 @@ export default function VideoPlayer(
             scanType: quality.scanType,
           }));
           onVariantsLoaded(dashVariants);
+          handleEvent('variantsLoaded', { variants: dashVariants });
         }
 
         const parsedDashData = parseVideoMetadata(videoRepresentation, 'dash');
         if (parsedDashData) {
           onMetadataLoaded(parsedDashData);
+          handleEvent('streamInitialized', { metadata: parsedDashData });
         }
       });
 
@@ -151,14 +180,7 @@ export default function VideoPlayer(
         const parsedDashData = parseVideoMetadata(videoRepresentation, 'dash');
         if (parsedDashData) {
           onMetadataLoaded(parsedDashData);
-        }
-      });
-
-      dashPlayer.on('bufferLoaded', () => {
-        const videoRepresentation = dashPlayer.getCurrentRepresentationForType('video');
-        const parsedDashData = parseVideoMetadata(videoRepresentation, 'dash');
-        if (parsedDashData) {
-          onMetadataLoaded(parsedDashData);
+          handleEvent('qualityChangeRendered', { metadata: parsedDashData });
         }
       });
 
@@ -190,20 +212,30 @@ export default function VideoPlayer(
 
       const levelData: any[] = [];
 
-      hls.on(HLs.Events.LEVEL_LOADED, (data: any) => {
+
+      hls.on(HLs.Events.MEDIA_ATTACHED, (event: any) => {
+        if (autoPlay) { 
+          video.play();
+        }
+        handleEvent(event, { src: src, autoplay: autoPlay });
+      });
+
+      hls.on(HLs.Events.LEVEL_LOADED, (event: any, data: any) => {
         levelData.push({
           level: data.level,
           duration: data.details?.totalduration,
-          bitrate: data.levelInfo?.bitrate,
+          bitrate: null,
           width: data.levelInfo?.width,
           height: data.levelInfo?.height,
           scanType: data.levelInfo?.scanType,
-          frameRate: data.levelInfo?.frameRate,
+          frameRate: null,
           codec: data.levelInfo?.codecSet,
         });
+        handleEvent(event, levelData);
       });
 
-      hls.on(HLs.Events.MANIFEST_LOADED, (data: any) => {
+      hls.on(HLs.Events.MANIFEST_PARSED, (event: any, data: any) => {
+        handleEvent(event, null);
         if (data?.levels?.length > 0) {
           const levelsSorted = data.levels
             .sort((level: any, level2: any) => level.height - level2.height);
@@ -211,18 +243,28 @@ export default function VideoPlayer(
         }
       });
 
-      hls.on(HLs.Events.LEVEL_UPDATED, (data: any) => {
-        newLevel = data.level;
+      hls.on(HLs.Events.MANIFEST_LOADED, (event: any, data: any) => {
+        handleEvent(event, null);
+        if (data?.networkDetails?.responseText) {
+          onManifestLoaded(data?.networkDetails?.responseText);
+        }
       });
 
-      hls.on(HLs.Events.FRAG_CHANGED, (data: any) => {
+      hls.on(HLs.Events.LEVEL_UPDATED, (event: any, data: any) => {
+        newLevel = data.level;
+        handleEvent(event, { newLevel: newLevel });
+      });
+
+      hls.on(HLs.Events.FRAG_CHANGED, (event: any, data: any) => {
         const fragLevel = data?.frag?.level;
         if (fragLevel === newLevel) {
+          handleEvent(event, { fragLevel: fragLevel });
           needMetadataRef.current = true;
         }
       });
       
-      hls.on(HLs.Events.FRAG_PARSED, async (data: any) => {
+      hls.on(HLs.Events.FRAG_PARSED, async (event: any, data: any) => {
+        handleEvent(event, { fragmentUrl: data?.frag?._url });
         if (needMetadataRef.current && data?.frag?._url) {
           needMetadataRef.current = false;
           const manifestData = levelData.find((level: any) => level.level === data.frag.level);
@@ -236,10 +278,60 @@ export default function VideoPlayer(
     return () => { hls?.destroy(); };
   }, [src, selectedVariant]);
 
+  const onKeyDown = (e: any) => {
+    const video = videoRef.current;
+    if (!video) return;
+    let isPaused = video.paused;
+    let volume = video.volume;
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (video.paused) {
+        isPaused = false;
+      } else {
+        isPaused = true;
+      }
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (video.currentTime && (video.currentTime >= 10)) {
+        video.currentTime -= 10;
+      }
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (video.currentTime && (video.currentTime <= video.duration - 10)) {
+        video.currentTime += 10;
+      }
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (volume && volume <= 0.9) {
+        video.volume += 0.1;
+      }
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (volume && volume >= 0.1) {
+        video.volume -= 0.1;
+      }
+    }
+    if (e.key === 'm') {
+      e.preventDefault();
+      video.muted = !video.muted;
+    }
+    if (e.key === 'f') {
+      e.preventDefault();
+      video.requestFullscreen();
+    }
+
+    return () => isPaused ? video.pause() : video.play();
+  };
+
   return (
     <video
       ref={videoRef}
       controls
+      onKeyDown={onKeyDown}
       playsInline
       className="player"
       aria-label="Video player"

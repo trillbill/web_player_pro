@@ -30,6 +30,7 @@ function App() {
   const [userUrl, setUserUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState(DASH);
   const [isCopied, setIsCopied] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(true);
   const [variants, setVariants] = useState<any[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<number>(-1);
   const [videoMetadata, setVideoMetadata] = useState<VideoMetadata>({
@@ -41,6 +42,8 @@ function App() {
     frameRate: null,
     codec: null,
   });
+  const [eventLog, setEventLog] = useState<string>('');
+  const manifestRef = useRef<string>('');
   const timeoutRef = useRef<any>(null);
 
   const handleCopy = () => {
@@ -81,6 +84,18 @@ function App() {
     }, 1000);
   };
 
+  const handleNewEvent = (event: string) => {
+    setEventLog(prev => prev += event);
+  };
+
+  const handleClearEvents = () => {
+    setEventLog('');
+  };
+
+  const handleNewManifest = (manifest: string) => {
+    manifestRef.current = manifest;
+  };
+
   return (
     <>
       <div className="container">
@@ -101,6 +116,10 @@ function App() {
             <VideoPlayer
               src={videoUrl}
               selectedVariant={selectedVariant}
+              autoPlay={autoPlay}
+              onEvent={handleNewEvent}
+              clearEvents={handleClearEvents}
+              onManifestLoaded={handleNewManifest}
               onMetadataLoaded={handleVideoMetadata}
               onVariantsLoaded={handleVariantsLoaded}
             />
@@ -117,6 +136,11 @@ function App() {
                 ))
               }
               <button className={selectedVariant === -1 ? 'variant-button-active' : 'variant-button'} onClick={() => setSelectedVariant(-1)}>Auto</button>
+            </div>
+            <div className="player-settings">
+              <p>Auto Play:</p>
+              <input type="checkbox" checked={autoPlay} onChange={() => setAutoPlay(!autoPlay)} />
+              <p>Controls: Play/Pause (Space), Seek (Arrow Keys), Volume (Up/Down), Mute (M), Fullscreen (F)</p>
             </div>
           </div>
           <div className="controls-column">
@@ -140,7 +164,6 @@ function App() {
               ))}
             </div>
             <div className="metrics-section">
-              {/* Placeholder for future video metrics and features */}
               <h1>Video Metrics</h1>
               <div className="video-url-container">
                 <h2>VIDEO URL:</h2><p>{videoUrl.substring(0, 15)}...</p>
@@ -164,6 +187,14 @@ function App() {
               </div>
             </div>
           </div>
+        </div>
+        <div className="inspector">
+          <h1>Event Log</h1>
+          <textarea name="event-log" className="event-log-container" disabled value={eventLog || 'Waiting for event data...'} />
+        </div>
+        <div className="inspector">
+          <h1>Manifest</h1>
+          <textarea name="manifest" className="event-log-container" disabled value={manifestRef.current || 'Waiting for manifest data...'} />
         </div>
       </div>
     </>
