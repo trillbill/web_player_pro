@@ -28,9 +28,9 @@ function App() {
   const DASH = import.meta.env.VITE_DASH_URL;
 
   const [userUrl, setUserUrl] = useState('');
-  const [videoUrl, setVideoUrl] = useState(DASH);
+  const [videoUrl, setVideoUrl] = useState(HLS);
   const [isCopied, setIsCopied] = useState(false);
-  const [autoPlay, setAutoPlay] = useState(true);
+  const [autoPlay, setAutoPlay] = useState(false);
   const [variants, setVariants] = useState<any[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<number>(-1);
   const [videoMetadata, setVideoMetadata] = useState<VideoMetadata>({
