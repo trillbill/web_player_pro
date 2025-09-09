@@ -32,6 +32,8 @@ function App() {
   const [isCopied, setIsCopied] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
   const [variants, setVariants] = useState<any[]>([]);
+  const [videoError, setVideoError] = useState<string>('');
+  const [errorModalOpen, setErrorModalOpen] = useState<boolean>(false);
   const [selectedVariant, setSelectedVariant] = useState<number>(-1);
   const [videoMetadata, setVideoMetadata] = useState<VideoMetadata>({
     duration: null,
@@ -96,6 +98,17 @@ function App() {
     manifestRef.current = manifest;
   };
 
+  const handleVideoError = (error: string) => {
+    if (!error) return;
+    setVideoError(error);
+    setErrorModalOpen(true);
+  };
+
+  const closeErrorModal = () => {
+    setErrorModalOpen(false);
+    setVideoError('');
+  };
+
   return (
     <>
       <div className="container">
@@ -117,6 +130,7 @@ function App() {
               src={videoUrl}
               selectedVariant={selectedVariant}
               autoPlay={autoPlay}
+              onError={handleVideoError}
               onEvent={handleNewEvent}
               clearEvents={handleClearEvents}
               onManifestLoaded={handleNewManifest}
@@ -196,6 +210,16 @@ function App() {
           <h1>Manifest</h1>
           <textarea name="manifest" className="event-log-container" disabled value={manifestRef.current || 'Waiting for manifest data...'} />
         </div>
+        {
+          errorModalOpen && videoError && (
+            <div className="error-modal-background">
+              <div className="error-modal">
+                <button className="error-modal-close" onClick={closeErrorModal}>X</button>
+                <div className="error-text">{videoError}</div>
+              </div>
+            </div>
+          )
+        }
       </div>
     </>
   )
