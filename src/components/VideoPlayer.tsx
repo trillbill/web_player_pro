@@ -6,11 +6,22 @@ import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile } from '@ffmpeg/util';
 
 export default function VideoPlayer(
-  { src, selectedVariant, autoPlay, onEvent, clearEvents, onManifestLoaded, onMetadataLoaded, onVariantsLoaded }:
+  { 
+    src,
+    selectedVariant,
+    autoPlay,
+    onError,
+    onEvent,
+    clearEvents,
+    onManifestLoaded,
+    onMetadataLoaded,
+    onVariantsLoaded 
+  }:
   { 
     src: string, 
     selectedVariant: number,
     autoPlay: boolean,
+    onError: (error: string) => void,
     onEvent: (event: string) => void,
     clearEvents: () => void,
     onManifestLoaded: (manifest: string) => void,
@@ -102,7 +113,7 @@ export default function VideoPlayer(
   };
 
   useEffect(() => {
-    if (src.endsWith(".mpd")) {
+    if (src.endsWith(".mpd") || src.indexOf(".mpd") > -1) {
       fetch(src)
         .then(response => response.text())
         .then(data => {
@@ -124,7 +135,7 @@ export default function VideoPlayer(
 
     let hls:HLs | null = null;
 
-    if (src.endsWith(".mpd")) {
+    if (src.endsWith(".mpd") || src.indexOf(".mpd") > -1) {
       console.log('DASH PLAYLIST DETECTED');
       const dashPlayer = dashjs.MediaPlayer().create();
 
@@ -142,6 +153,11 @@ export default function VideoPlayer(
         }
       });
       dashPlayer.attachView(video);
+
+      dashPlayer.on('error', (e: any) => {
+        handleEvent('dashPlayerError', null);
+        onError(`Error encountered while processing ${src}: ${e?.error?.message || 'Unknown error'}`);
+      });
 
       dashPlayer.on('manifestLoaded', () => {
         handleEvent('manifestLoaded', null);
@@ -185,7 +201,7 @@ export default function VideoPlayer(
       });
 
       return () => { dashPlayer.destroy(); };
-    } else if (HLs.isSupported()) {
+    } else if (HLs.isSupported() && src.indexOf(".m3u8") > -1) {
       console.log('HLS PLAYLIST DETECTED');
       const hlsConfig = {
         enableWorker: true,
@@ -204,6 +220,12 @@ export default function VideoPlayer(
       hls = new HLs(hlsConfig);
       hls.loadSource(src);
       hls.attachMedia(video);
+
+      hls.on(HLs.Events.ERROR, (event: any, data: any) => {
+        handleEvent(event, null);
+        onError(`Error encountered while processing ${src}: ${data?.error?.message || 'Unknown error'}`);
+      });
+
       if (selectedVariant >= 0) {
         hls.currentLevel = selectedVariant;
       }
@@ -274,6 +296,8 @@ export default function VideoPlayer(
           fragParsing(data.frag._url, manifestData);
         }
       });
+    } else {
+      onError(`${src} is not a valid or supported video URL. Please try a different URL or select one of the sample streams provided.`);
     }
     return () => { hls?.destroy(); };
   }, [src, selectedVariant]);
