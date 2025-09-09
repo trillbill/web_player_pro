@@ -3,4 +3,4 @@
 - Fix bitrate flashing on HLS load 
 - Add a manifest inspect view
 - Add advanced metrics: rebuffer, frame drop
-- Deploy to website vercel/netlify
+## Deploy to website vercel/netlify
