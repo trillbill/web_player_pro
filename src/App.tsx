@@ -221,6 +221,11 @@ function App() {
           )
         }
       </div>
+      <footer className="footer">
+        <div className="footer-content">
+          <p>&copy; 2025 Web Player Pro. Created by <a href="https://www.linkedin.com/in/william-finnegan-4b64819a" target="_blank" rel="noopener noreferrer">Will Finnegan</a></p>
+        </div>
+      </footer>
     </>
   )
 }
