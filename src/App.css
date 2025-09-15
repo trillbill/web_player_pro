@@ -318,6 +318,37 @@ h1 {
   margin-bottom: 40px;
 }
 
+.footer {
+  background: #2a2a2a;
+  border-top: 1px solid #444;
+  padding: 20px;
+  text-align: center;
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer p {
+  color: #ccc;
+  margin: 0;
+  font-size: 0.9rem;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.footer a {
+  color: #15a440;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
 @media (width <= 1250px) {
   .main-content {
     display: block;
